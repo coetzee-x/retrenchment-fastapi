@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from app.models.company import Company
 from app.models.company_user import CompanyUser
+from app.models.registration_link_model import RegistrationLinkModel
 from app.models.user import User
 
 def get_user_companies(
@@ -55,4 +56,26 @@ def get_user_by_email(
         .filter(User.email == email)
         .first()
     )
+    
+def create_registration_link(
+    firstname: str,
+    lastname: str,
+    email: str,
+    company_id: int,
+    role_id: int,
+    db: Session) -> RegistrationLinkModel:
+    (db.query(RegistrationLinkModel)
+     .filter(RegistrationLinkModel.company_id == company_id)
+     .filter(RegistrationLinkModel.email == email)
+     .delete())
+    new_registration_link = (RegistrationLinkModel(
+        firstname=firstname, 
+        lastname=lastname, 
+        email=email, 
+        company_id=company_id, 
+        role_id=role_id))
+    db.add(new_registration_link)
+    db.commit()
+    db.refresh(new_registration_link)
+    return new_registration_link
 

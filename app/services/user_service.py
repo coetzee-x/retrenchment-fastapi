@@ -1,4 +1,4 @@
-import bcrypt
+import smtplib
 from fastapi import Depends
 import jwt
 import os
@@ -11,13 +11,16 @@ from sqlalchemy import select
 from app.dependencies.database import get_db
 from app.models.company import Company
 from app.models.company_user import CompanyUser
+from app.models.registration_link_model import RegistrationLinkModel
 from app.models.user import User
-from app.repositories import company_repository, user_repository
+from app.repositories import company_repository, role_repository, user_repository
 from app.schemas.company_schema import CompanySchema
+from app.schemas.create_registration_link_schema import CreateRegistrationLinkSchema
 from app.schemas.http_exception_detail import HttpExceptionDetail
 from app.schemas.login_schema import LoginSchema
 from app.schemas.register_schema import RegisterSchema
 from app.services import utility_service
+from app.services.email_sender_service import EmailSenderService
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="")
 
@@ -80,4 +83,24 @@ def login_user(
     if not user:
         raise LookupError("Incorrect email or password")
     return create_user_token(user)
+
+
+
+
+def create_registration_link(
+    schema: CreateRegistrationLinkSchema,
+    db: Session) -> int:
+    company = company_repository.get_company_by_id(schema.company_id, db)
+    if not company: raise LookupError("Company not found")
+    role = role_repository.get_role_by_id(schema.role_id, db)
+    if not role: raise LookupError("Role not found")
+    registration_link = user_repository.create_registration_link(
+        firstname=schema.firstname, 
+        lastname=schema.lastname, 
+        email=schema.email, 
+        company_id=company.id, 
+        role_id=role.id,
+        db=db)
+    EmailSenderService.send_email("xander.coetzee@smollan.com","test subject", "test body")
     
+        
